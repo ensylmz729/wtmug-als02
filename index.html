@@ -4,21 +4,34 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cihaz Test" />
 <title>Android Cihaz Test PWA</title>
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
 <style>
   :root{
     --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0;
     --muted:#94a3b8; --ok:#22c55e; --err:#ef4444;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
-    font-family:-apple-system,Roboto,"Segoe UI",sans-serif;}
-  header{padding:16px; text-align:center; border-bottom:1px solid #334155;}
+
+  html,body{
+    margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,Roboto,"Segoe UI",sans-serif;
+    overscroll-behavior:none;
+  }
+
+  header{padding:16px; text-align:center; border-bottom:1px solid #334155;
+    padding-top:calc(16px + env(safe-area-inset-top));}
   header h1{margin:0; font-size:1.2rem;}
   header p{margin:4px 0 0; font-size:.8rem; color:var(--muted);}
-  main{padding:12px; display:grid; gap:12px;}
+
+  main{padding:12px; display:grid; gap:12px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));}
+
   .card{background:var(--card); border-radius:14px; padding:14px;
     box-shadow:0 2px 8px rgba(0,0,0,.3);}
   .card h2{margin:0 0 10px; font-size:1rem; color:var(--accent);}
@@ -30,22 +43,57 @@
   .status{font-size:.85rem; color:var(--muted); margin-top:8px;}
   .ok{color:var(--ok);} .err{color:var(--err);}
 
-  /* Renk testi */
-  #colorOverlay{position:fixed; inset:0; display:none; z-index:9999;
-    align-items:center; justify-content:center; cursor:pointer;}
-  #colorOverlay span{color:#fff; mix-blend-mode:difference; font-size:1rem;}
+  /* ---------- Renk testi (iOS uyumlu tam ekran katman) ---------- */
+  #colorOverlay{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    height:100dvh;              /* iOS 16+ dinamik viewport */
+    display:none;
+    z-index:99999;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    padding-top:env(safe-area-inset-top);
+    padding-bottom:env(safe-area-inset-bottom);
+    padding-left:env(safe-area-inset-left);
+    padding-right:env(safe-area-inset-right);
+  }
+  #colorOverlay span{
+    color:#fff;
+    mix-blend-mode:difference;
+    font-size:1rem;
+    padding:12px 18px;
+    border:1px dashed rgba(255,255,255,.6);
+    border-radius:10px;
+    background:rgba(0,0,0,.15);
+  }
 
-  /* Dokunmatik */
+  /* ---------- Dokunmatik ---------- */
   #touchCanvas{width:100%; height:220px; background:#0b1220;
     border-radius:10px; touch-action:none; display:block;}
 
-  /* Hoparlör */
+  /* ---------- Hoparlör ---------- */
   input[type=range]{width:100%;}
 
-  /* Mikrofon */
+  /* ---------- Mikrofon ---------- */
   #micBar{height:14px; background:#0b1220; border-radius:7px; overflow:hidden;}
   #micFill{height:100%; width:0%; background:linear-gradient(90deg,#22c55e,#ef4444);
     transition:width .05s;}
+
+  /* ---------- iOS uyarı bandı ---------- */
+  .ios-note{
+    display:none;
+    background:#7c2d12;
+    color:#fed7aa;
+    font-size:.78rem;
+    padding:8px 12px;
+    border-radius:8px;
+    margin-top:8px;
+    line-height:1.35;
+  }
+  .ios-note.show{display:block;}
 </style>
 </head>
 <body>
@@ -69,6 +117,11 @@
       <button data-color="#00ffff">Cyan</button>
     </div>
     <p class="status">Bir renge bas → tam ekran. Geri dönmek için ekrana dokun.</p>
+    <div class="ios-note" id="iosColorNote">
+      ℹ️ iPhone'da tam ekran için: <b>Paylaş → Ana Ekrana Ekle</b> ile
+      yükleyip PWA modunda aç. Safari sekmesinde üst/alt çubuk kalır
+      (Apple Fullscreen API'yi desteklemiyor).
+    </div>
   </section>
 
   <!-- 2. DOKUNMATİK TESTİ -->
@@ -92,6 +145,10 @@
     </div>
     <label class="status">Ses seviyesi: <span id="volLabel">50</span>%</label>
     <input type="range" id="volSlider" min="0" max="100" value="50" />
+    <div class="ios-note" id="iosAudioNote">
+      ℹ️ iPhone'da ses çıkmıyorsa <b>sessiz mod anahtarını</b> kapat
+      veya telefonun sesini aç. Web Audio ilk tıklamadan sonra çalışır.
+    </div>
   </section>
 
   <!-- 4. MİKROFON TESTİ -->
@@ -116,6 +173,12 @@
       <button data-vib="100,50,100,50,300">Desenli</button>
     </div>
     <p class="status" id="vibStatus"></p>
+    <div class="ios-note" id="iosVibNote">
+      ℹ️ <b>iPhone/Safari <code>navigator.vibrate()</code>'i desteklemez.</b>
+      Bu Apple'ın bilinçli kısıtlamasıdır — uygulamanın hatası değil.
+      Gerçek titreşim yalnızca Android'de çalışır. iPhone'da görsel + sesli
+      geri bildirim uygulanır.
+    </div>
   </section>
 
   <!-- 6. İNTERNET TESTİ -->
@@ -135,6 +198,24 @@
 
 <script>
 /* ============================================================
+   iOS TESPİTİ
+   ============================================================ */
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = window.navigator.standalone === true ||
+                     window.matchMedia('(display-mode: standalone)').matches;
+
+if (isIOS && !isStandalone) {
+  // Safari sekmesindeyse bilgilendirmeleri göster
+  document.getElementById('iosColorNote').classList.add('show');
+  document.getElementById('iosAudioNote').classList.add('show');
+}
+if (isIOS) {
+  // Titreşim notu her durumda gösterilsin
+  document.getElementById('iosVibNote').classList.add('show');
+}
+
+/* ============================================================
    0. SERVICE WORKER KAYDI
    ============================================================ */
 if ('serviceWorker' in navigator) {
@@ -146,25 +227,39 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ============================================================
-   1. EKRAN RENK TESTİ
+   1. EKRAN RENK TESTİ (iOS uyumlu)
    ============================================================ */
 const overlay = document.getElementById('colorOverlay');
+
 document.querySelectorAll('[data-color]').forEach(btn => {
   btn.addEventListener('click', async () => {
     const c = btn.dataset.color;
     overlay.style.background = c;
     overlay.style.display = 'flex';
-    // Tam ekran (kullanıcı jesti ile çağrıldığı için izin verir)
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
-      }
-    } catch (e) { console.warn('Fullscreen reddedildi:', e); }
+
+    // iOS'ta fullscreen API yok — sadece destekleyen tarayıcılarda çağır
+    const el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen) {
+      try { await el.requestFullscreen(); } catch(e){ /* iOS'ta buraya düşer */ }
+    } else if (!document.fullscreenElement && el.webkitRequestFullscreen) {
+      try { el.webkitRequestFullscreen(); } catch(e){}
+    }
+
+    // iOS'ta scroll'u en üste sabitle (Safari çubuğunun kaymasını engeller)
+    window.scrollTo(0, 0);
+
+    // Renk katmanındayken body scroll'unu kilitle
+    document.body.style.overflow = 'hidden';
   });
 });
+
 overlay.addEventListener('click', async () => {
   overlay.style.display = 'none';
-  try { if (document.fullscreenElement) await document.exitFullscreen(); } catch(e){}
+  document.body.style.overflow = '';
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else if (document.webkitFullscreenElement) document.webkitExitFullscreen();
+  } catch(e){}
 });
 
 /* ============================================================
@@ -178,6 +273,7 @@ function resizeCanvas(){
   const r = canvas.getBoundingClientRect();
   canvas.width  = r.width  * devicePixelRatio;
   canvas.height = r.height * devicePixelRatio;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset (resize'larda ölçek birikmesin)
   ctx.scale(devicePixelRatio, devicePixelRatio);
   ctx.lineWidth = 3;
   ctx.lineCap = 'round';
@@ -186,7 +282,7 @@ function resizeCanvas(){
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-const activeTouches = new Map(); // id -> {x,y}
+const activeTouches = new Map();
 
 function localPos(t){
   const r = canvas.getBoundingClientRect();
@@ -225,7 +321,7 @@ canvas.addEventListener('touchend', e => {
   touchCountEl.textContent = e.touches.length;
 });
 
-canvas.addEventListener('touchcancel', e => {
+canvas.addEventListener('touchcancel', () => {
   activeTouches.clear();
   touchCountEl.textContent = 0;
 });
@@ -246,11 +342,19 @@ volSlider.addEventListener('input', () => {
   if (gain) gain.gain.value = volSlider.value / 100;
 });
 
+function ensureAudioCtx(){
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // iOS: ilk kullanıcı etkileşiminde resume şart
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
 document.querySelectorAll('[data-freq]').forEach(btn => {
   btn.addEventListener('click', () => {
     stopTone();
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    ensureAudioCtx();
     osc  = audioCtx.createOscillator();
     gain = audioCtx.createGain();
     osc.type = 'sine';
@@ -278,7 +382,7 @@ const micStatus = document.getElementById('micStatus');
 document.getElementById('micStart').addEventListener('click', async () => {
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    ensureAudioCtx();
     const src = audioCtx.createMediaStreamSource(micStream);
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 512;
@@ -291,14 +395,14 @@ document.getElementById('micStart').addEventListener('click', async () => {
       analyser.getByteFrequencyData(data);
       let sum = 0;
       for (let i = 0; i < data.length; i++) sum += data[i];
-      const avg = sum / data.length;             // 0..255
+      const avg = sum / data.length;
       micFill.style.width = Math.min(100, avg * 1.6) + '%';
       micRAF = requestAnimationFrame(loop);
     };
     loop();
   } catch (e) {
     micStatus.textContent = 'Mikrofon hatası: ' + e.message +
-      ' (HTTPS gerekli olabilir)';
+      ' (HTTPS gerekli)';
     micStatus.className = 'status err';
   }
 });
@@ -312,23 +416,43 @@ document.getElementById('micStop').addEventListener('click', () => {
   micStatus.className = 'status';
 });
 
-document.getElementById('micRecord').addEventListener('click', async () => {
+document.getElementById('micRecord').addEventListener('click', () => {
   if (!micStream) {
     micStatus.textContent = 'Önce "Başlat" butonuna bas.';
     micStatus.className = 'status err';
     return;
   }
   recordedChunks = [];
-  mediaRecorder = new MediaRecorder(micStream);
+
+  // iOS Safari bazen 'audio/webm' desteklemez; mp4 dene
+  const mimeCandidates = ['audio/webm', 'audio/mp4', 'audio/aac', ''];
+  let mime = '';
+  for (const m of mimeCandidates) {
+    if (!m || (window.MediaRecorder && MediaRecorder.isTypeSupported(m))) {
+      mime = m; break;
+    }
+  }
+  try {
+    mediaRecorder = mime ? new MediaRecorder(micStream, { mimeType: mime })
+                         : new MediaRecorder(micStream);
+  } catch (e) {
+    micStatus.textContent = 'Kayıt başlatılamadı: ' + e.message;
+    micStatus.className = 'status err';
+    return;
+  }
+
   mediaRecorder.ondataavailable = e => { if (e.data.size) recordedChunks.push(e.data); };
   mediaRecorder.onstop = () => {
-    recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+    const type = mediaRecorder.mimeType || 'audio/webm';
+    recordedBlob = new Blob(recordedChunks, { type });
     micStatus.textContent = 'Kayıt tamam — "Dinle" ile çal.';
     micStatus.className = 'status ok';
   };
   mediaRecorder.start();
   micStatus.textContent = 'Kaydediliyor… (5 sn)';
-  setTimeout(() => mediaRecorder.state !== 'inactive' && mediaRecorder.stop(), 5000);
+  setTimeout(() => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  }, 5000);
 });
 
 document.getElementById('micPlay').addEventListener('click', () => {
@@ -341,27 +465,67 @@ document.getElementById('micPlay').addEventListener('click', () => {
 });
 
 /* ============================================================
-   5. TİTREŞİM TESTİ
+   5. TİTREŞİM TESTİ (iOS fallback'li)
    ============================================================ */
 const vibStatus = document.getElementById('vibStatus');
+
+function iosHapticFallback(durationMs){
+  // Görsel sarsıntı
+  if (document.body.animate) {
+    document.body.animate(
+      [
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-6px)' },
+        { transform: 'translateX(6px)' },
+        { transform: 'translateX(0)' }
+      ],
+      { duration: Math.min(300, durationMs || 150), easing: 'ease-in-out' }
+    );
+  }
+  // Kısa bir "tık" sesi (Web Audio ile)
+  try {
+    ensureAudioCtx();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.value = 120;
+    g.gain.value = 0.12;
+    o.connect(g).connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + Math.min(0.08, (durationMs || 100)/1000));
+  } catch(e){}
+}
+
 document.querySelectorAll('[data-vib]').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (!('vibrate' in navigator)) {
+    const pattern = btn.dataset.vib.split(',').map(Number);
+    const totalMs = pattern.reduce((a, b) => a + b, 0);
+
+    const supported = ('vibrate' in navigator) &&
+                      typeof navigator.vibrate === 'function';
+
+    if (supported) {
+      const ok = navigator.vibrate(pattern);
+      vibStatus.textContent = ok ? 'Titreşim gönderildi.'
+                                 : 'Titreşim reddedildi.';
+      vibStatus.className = 'status ' + (ok ? 'ok' : 'err');
+    } else if (isIOS) {
+      vibStatus.textContent =
+        '⚠️ iPhone titreşim API\'sini desteklemiyor. Görsel + sesli ' +
+        'geri bildirim uygulandı.';
+      vibStatus.className = 'status err';
+      iosHapticFallback(totalMs);
+    } else {
       vibStatus.textContent = 'Bu tarayıcı titreşimi desteklemiyor.';
       vibStatus.className = 'status err';
-      return;
     }
-    const pattern = btn.dataset.vib.split(',').map(Number);
-    const ok = navigator.vibrate(pattern);
-    vibStatus.textContent = ok ? 'Titreşim gönderildi.' : 'Titreşim reddedildi.';
-    vibStatus.className = 'status ' + (ok ? 'ok' : 'err');
   });
 });
 
 /* ============================================================
    6. İNTERNET TESTİ
    ============================================================ */
-const netStatus = document.getElementById('netStatus');
+const netStatus  = document.getElementById('netStatus');
 const pingResult = document.getElementById('pingResult');
 
 function updateNet(){
@@ -377,7 +541,6 @@ document.getElementById('pingBtn').addEventListener('click', async () => {
   pingResult.textContent = 'ölçülüyor…';
   const t0 = performance.now();
   try {
-    // Cache'i atlatmak için ?t= ekliyoruz
     await fetch('https://www.google.com/generate_204?t=' + Date.now(),
       { mode: 'no-cors', cache: 'no-store' });
     const dt = Math.round(performance.now() - t0);
