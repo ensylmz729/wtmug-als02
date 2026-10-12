@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0f172a" />
+<title>Android Cihaz Test PWA</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0;
+    --muted:#94a3b8; --ok:#22c55e; --err:#ef4444;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,Roboto,"Segoe UI",sans-serif;}
+  header{padding:16px; text-align:center; border-bottom:1px solid #334155;}
+  header h1{margin:0; font-size:1.2rem;}
+  header p{margin:4px 0 0; font-size:.8rem; color:var(--muted);}
+  main{padding:12px; display:grid; gap:12px;}
+  .card{background:var(--card); border-radius:14px; padding:14px;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .card h2{margin:0 0 10px; font-size:1rem; color:var(--accent);}
+  button{padding:10px 14px; margin:4px; border:none; border-radius:8px;
+    background:var(--accent); color:#0f172a; font-weight:600; font-size:.9rem;}
+  button:active{opacity:.7;}
+  button.alt{background:#475569; color:#e2e8f0;}
+  .row{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
+  .status{font-size:.85rem; color:var(--muted); margin-top:8px;}
+  .ok{color:var(--ok);} .err{color:var(--err);}
+
+  /* Renk testi */
+  #colorOverlay{position:fixed; inset:0; display:none; z-index:9999;
+    align-items:center; justify-content:center; cursor:pointer;}
+  #colorOverlay span{color:#fff; mix-blend-mode:difference; font-size:1rem;}
+
+  /* Dokunmatik */
+  #touchCanvas{width:100%; height:220px; background:#0b1220;
+    border-radius:10px; touch-action:none; display:block;}
+
+  /* Hoparlör */
+  input[type=range]{width:100%;}
+
+  /* Mikrofon */
+  #micBar{height:14px; background:#0b1220; border-radius:7px; overflow:hidden;}
+  #micFill{height:100%; width:0%; background:linear-gradient(90deg,#22c55e,#ef4444);
+    transition:width .05s;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Android Cihaz Test PWA</h1>
+  <p>Pixel 7 • Android 14 • Chrome</p>
+</header>
+
+<main>
+
+  <!-- 1. EKRAN RENK TESTİ -->
+  <section class="card" aria-label="Ekran renk testi">
+    <h2>1. Ekran Renk Testi</h2>
+    <div class="row">
+      <button data-color="#ff0000">Kırmızı</button>
+      <button data-color="#00ff00">Yeşil</button>
+      <button data-color="#0000ff">Mavi</button>
+      <button data-color="#ffffff">Beyaz</button>
+      <button data-color="#000000">Siyah</button>
+      <button data-color="#00ffff">Cyan</button>
+    </div>
+    <p class="status">Bir renge bas → tam ekran. Geri dönmek için ekrana dokun.</p>
+  </section>
+
+  <!-- 2. DOKUNMATİK TESTİ -->
+  <section class="card" aria-label="Dokunmatik testi">
+    <h2>2. Dokunmatik Testi</h2>
+    <canvas id="touchCanvas"></canvas>
+    <div class="row">
+      <button id="clearCanvas" class="alt">Temizle</button>
+      <span class="status">Aktif parmak: <b id="touchCount">0</b></span>
+    </div>
+  </section>
+
+  <!-- 3. HOPARLÖR TESTİ -->
+  <section class="card" aria-label="Hoparlör testi">
+    <h2>3. Hoparlör Testi</h2>
+    <div class="row">
+      <button data-freq="440">440 Hz</button>
+      <button data-freq="1000">1 kHz</button>
+      <button data-freq="8000">8 kHz</button>
+      <button id="stopTone" class="alt">Durdur</button>
+    </div>
+    <label class="status">Ses seviyesi: <span id="volLabel">50</span>%</label>
+    <input type="range" id="volSlider" min="0" max="100" value="50" />
+  </section>
+
+  <!-- 4. MİKROFON TESTİ -->
+  <section class="card" aria-label="Mikrofon testi">
+    <h2>4. Mikrofon Testi</h2>
+    <div class="row">
+      <button id="micStart">Başlat</button>
+      <button id="micStop" class="alt">Durdur</button>
+      <button id="micRecord" class="alt">Kaydet</button>
+      <button id="micPlay" class="alt">Dinle</button>
+    </div>
+    <div id="micBar" style="margin-top:10px;"><div id="micFill"></div></div>
+    <p class="status" id="micStatus">Mikrofon bekleniyor…</p>
+  </section>
+
+  <!-- 5. TİTREŞİM TESTİ -->
+  <section class="card" aria-label="Titreşim testi">
+    <h2>5. Titreşim Testi</h2>
+    <div class="row">
+      <button data-vib="100">100 ms</button>
+      <button data-vib="500">500 ms</button>
+      <button data-vib="100,50,100,50,300">Desenli</button>
+    </div>
+    <p class="status" id="vibStatus"></p>
+  </section>
+
+  <!-- 6. İNTERNET TESTİ -->
+  <section class="card" aria-label="İnternet testi">
+    <h2>6. İnternet Bağlantı Testi</h2>
+    <div class="row">
+      <button id="pingBtn">Ping At</button>
+      <span class="status">Durum: <b id="netStatus">—</b></span>
+    </div>
+    <p class="status">Gecikme: <b id="pingResult">—</b> ms</p>
+  </section>
+
+</main>
+
+<!-- Renk tam ekran katmanı -->
+<div id="colorOverlay"><span>Geri dönmek için dokun</span></div>
+
+<script>
+/* ============================================================
+   0. SERVICE WORKER KAYDI
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(r => console.log('SW kayıtlı:', r.scope))
+      .catch(e => console.error('SW hatası:', e));
+  });
+}
+
+/* ============================================================
+   1. EKRAN RENK TESTİ
+   ============================================================ */
+const overlay = document.getElementById('colorOverlay');
+document.querySelectorAll('[data-color]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const c = btn.dataset.color;
+    overlay.style.background = c;
+    overlay.style.display = 'flex';
+    // Tam ekran (kullanıcı jesti ile çağrıldığı için izin verir)
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (e) { console.warn('Fullscreen reddedildi:', e); }
+  });
+});
+overlay.addEventListener('click', async () => {
+  overlay.style.display = 'none';
+  try { if (document.fullscreenElement) await document.exitFullscreen(); } catch(e){}
+});
+
+/* ============================================================
+   2. DOKUNMATİK TESTİ
+   ============================================================ */
+const canvas = document.getElementById('touchCanvas');
+const ctx = canvas.getContext('2d');
+const touchCountEl = document.getElementById('touchCount');
+
+function resizeCanvas(){
+  const r = canvas.getBoundingClientRect();
+  canvas.width  = r.width  * devicePixelRatio;
+  canvas.height = r.height * devicePixelRatio;
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#38bdf8';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+const activeTouches = new Map(); // id -> {x,y}
+
+function localPos(t){
+  const r = canvas.getBoundingClientRect();
+  return { x: t.clientX - r.left, y: t.clientY - r.top };
+}
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const p = localPos(t);
+    activeTouches.set(t.identifier, p);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+  touchCountEl.textContent = e.touches.length;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const p = localPos(t);
+    const prev = activeTouches.get(t.identifier);
+    if (prev) {
+      ctx.beginPath();
+      ctx.moveTo(prev.x, prev.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    activeTouches.set(t.identifier, p);
+  }
+  touchCountEl.textContent = e.touches.length;
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) activeTouches.delete(t.identifier);
+  touchCountEl.textContent = e.touches.length;
+});
+
+canvas.addEventListener('touchcancel', e => {
+  activeTouches.clear();
+  touchCountEl.textContent = 0;
+});
+
+document.getElementById('clearCanvas').addEventListener('click', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+/* ============================================================
+   3. HOPARLÖR TESTİ
+   ============================================================ */
+let audioCtx = null, osc = null, gain = null;
+const volSlider = document.getElementById('volSlider');
+const volLabel  = document.getElementById('volLabel');
+
+volSlider.addEventListener('input', () => {
+  volLabel.textContent = volSlider.value;
+  if (gain) gain.gain.value = volSlider.value / 100;
+});
+
+document.querySelectorAll('[data-freq]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    stopTone();
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    osc  = audioCtx.createOscillator();
+    gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = parseInt(btn.dataset.freq, 10);
+    gain.gain.value = volSlider.value / 100;
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+  });
+});
+
+function stopTone(){
+  if (osc) { try { osc.stop(); } catch(e){} osc.disconnect(); osc = null; }
+  if (gain) { gain.disconnect(); gain = null; }
+}
+document.getElementById('stopTone').addEventListener('click', stopTone);
+
+/* ============================================================
+   4. MİKROFON TESTİ
+   ============================================================ */
+let micStream = null, analyser = null, micRAF = null;
+let mediaRecorder = null, recordedChunks = [], recordedBlob = null;
+const micFill   = document.getElementById('micFill');
+const micStatus = document.getElementById('micStatus');
+
+document.getElementById('micStart').addEventListener('click', async () => {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    micStatus.textContent = 'Mikrofon aktif — konuşun.';
+    micStatus.className = 'status ok';
+
+    const loop = () => {
+      analyser.getByteFrequencyData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      const avg = sum / data.length;             // 0..255
+      micFill.style.width = Math.min(100, avg * 1.6) + '%';
+      micRAF = requestAnimationFrame(loop);
+    };
+    loop();
+  } catch (e) {
+    micStatus.textContent = 'Mikrofon hatası: ' + e.message +
+      ' (HTTPS gerekli olabilir)';
+    micStatus.className = 'status err';
+  }
+});
+
+document.getElementById('micStop').addEventListener('click', () => {
+  if (micRAF) cancelAnimationFrame(micRAF);
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  micStream = null; analyser = null;
+  micFill.style.width = '0%';
+  micStatus.textContent = 'Mikrofon durduruldu.';
+  micStatus.className = 'status';
+});
+
+document.getElementById('micRecord').addEventListener('click', async () => {
+  if (!micStream) {
+    micStatus.textContent = 'Önce "Başlat" butonuna bas.';
+    micStatus.className = 'status err';
+    return;
+  }
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(micStream);
+  mediaRecorder.ondataavailable = e => { if (e.data.size) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+    micStatus.textContent = 'Kayıt tamam — "Dinle" ile çal.';
+    micStatus.className = 'status ok';
+  };
+  mediaRecorder.start();
+  micStatus.textContent = 'Kaydediliyor… (5 sn)';
+  setTimeout(() => mediaRecorder.state !== 'inactive' && mediaRecorder.stop(), 5000);
+});
+
+document.getElementById('micPlay').addEventListener('click', () => {
+  if (!recordedBlob) {
+    micStatus.textContent = 'Önce kayıt yap.';
+    micStatus.className = 'status err';
+    return;
+  }
+  new Audio(URL.createObjectURL(recordedBlob)).play();
+});
+
+/* ============================================================
+   5. TİTREŞİM TESTİ
+   ============================================================ */
+const vibStatus = document.getElementById('vibStatus');
+document.querySelectorAll('[data-vib]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (!('vibrate' in navigator)) {
+      vibStatus.textContent = 'Bu tarayıcı titreşimi desteklemiyor.';
+      vibStatus.className = 'status err';
+      return;
+    }
+    const pattern = btn.dataset.vib.split(',').map(Number);
+    const ok = navigator.vibrate(pattern);
+    vibStatus.textContent = ok ? 'Titreşim gönderildi.' : 'Titreşim reddedildi.';
+    vibStatus.className = 'status ' + (ok ? 'ok' : 'err');
+  });
+});
+
+/* ============================================================
+   6. İNTERNET TESTİ
+   ============================================================ */
+const netStatus = document.getElementById('netStatus');
+const pingResult = document.getElementById('pingResult');
+
+function updateNet(){
+  const online = navigator.onLine;
+  netStatus.textContent = online ? 'Çevrimiçi' : 'Çevrimdışı';
+  netStatus.className = online ? 'ok' : 'err';
+}
+window.addEventListener('online', updateNet);
+window.addEventListener('offline', updateNet);
+updateNet();
+
+document.getElementById('pingBtn').addEventListener('click', async () => {
+  pingResult.textContent = 'ölçülüyor…';
+  const t0 = performance.now();
+  try {
+    // Cache'i atlatmak için ?t= ekliyoruz
+    await fetch('https://www.google.com/generate_204?t=' + Date.now(),
+      { mode: 'no-cors', cache: 'no-store' });
+    const dt = Math.round(performance.now() - t0);
+    pingResult.textContent = dt;
+  } catch (e) {
+    pingResult.textContent = 'hata (' + e.message + ')';
+  }
+  updateNet();
+});
+</script>
+</body>
+</html>
