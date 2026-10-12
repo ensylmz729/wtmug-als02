@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="dark">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -12,7 +12,8 @@
 <link rel="icon" href="icons/icon-192.png" />
 <link rel="apple-touch-icon" href="icons/icon-192.png" />
 <style>
-  :root{
+  /* ==================== TEMA DEĞİŞKENLERİ ==================== */
+  html[data-theme="dark"]{
     --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0;
     --muted:#94a3b8; --ok:#22c55e; --err:#ef4444;
     --header-border:#334155; --canvas-bg:#0b1220;
@@ -20,15 +21,19 @@
     --alt-bg:#475569; --alt-text:#e2e8f0;
     --note-bg:#7c2d12; --note-text:#fed7aa;
     --shadow:0 2px 8px rgba(0,0,0,.3);
+    --btn-text:#0f172a;
+    --map-filter:invert(0.92) hue-rotate(180deg);
   }
   html[data-theme="light"]{
     --bg:#f1f5f9; --card:#ffffff; --accent:#0284c7; --text:#0f172a;
-    --muted:#64748b; --ok:#16a34a; --err:#dc2626;
+    --muted:#475569; --ok:#16a34a; --err:#dc2626;
     --header-border:#cbd5e1; --canvas-bg:#f8fafc;
     --hud-bg:rgba(255,255,255,.9); --hud-border:#cbd5e1;
-    --alt-bg:#cbd5e1; --alt-text:#0f172a;
+    --alt-bg:#e2e8f0; --alt-text:#0f172a;
     --note-bg:#fef3c7; --note-text:#92400e;
-    --shadow:0 2px 8px rgba(15,23,42,.1);
+    --shadow:0 2px 8px rgba(15,23,42,.12);
+    --btn-text:#ffffff;
+    --map-filter:none;
   }
 
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -40,10 +45,11 @@
     transition:background .25s ease, color .25s ease;
   }
 
-  header{padding:16px; text-align:center; border-bottom:1px solid var(--header-border);
+  header{padding:16px; text-align:center;
+    border-bottom:1px solid var(--header-border);
     padding-top:calc(16px + env(safe-area-inset-top));
     position:relative;}
-  header h1{margin:0; font-size:1.2rem;}
+  header h1{margin:0; font-size:1.2rem; color:var(--text);}
   header p{margin:4px 0 0; font-size:.8rem; color:var(--muted);}
 
   /* Tema değiştirme butonu */
@@ -51,40 +57,44 @@
     position:absolute;
     top:calc(12px + env(safe-area-inset-top));
     right:calc(12px + env(safe-area-inset-right));
-    width:42px; height:42px; padding:0; margin:0;
+    width:44px; height:44px; padding:0; margin:0;
     border-radius:50%;
     background:var(--card); color:var(--text);
     border:1px solid var(--header-border);
-    font-size:1.15rem;
+    font-size:1.2rem;
     display:flex; align-items:center; justify-content:center;
     box-shadow:var(--shadow);
+    cursor:pointer;
+    z-index:100;
+    line-height:1;
   }
 
   main{padding:12px; display:grid; gap:12px;
     padding-bottom:calc(12px + env(safe-area-inset-bottom));}
 
   .card{background:var(--card); border-radius:14px; padding:14px;
-    box-shadow:var(--shadow); transition:background .25s ease;}
+    box-shadow:var(--shadow);
+    transition:background .25s ease;
+    color:var(--text);}
   .card h2{margin:0 0 10px; font-size:1rem; color:var(--accent);}
+
   button{padding:10px 14px; margin:4px; border:none; border-radius:8px;
-    background:var(--accent); color:#fff; font-weight:600; font-size:.9rem;}
+    background:var(--accent); color:var(--btn-text);
+    font-weight:600; font-size:.9rem;
+    cursor:pointer;}
   button:active{opacity:.7;}
   button.alt{background:var(--alt-bg); color:var(--alt-text);}
+
   .row{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
   .status{font-size:.85rem; color:var(--muted); margin-top:8px;}
   .ok{color:var(--ok);} .err{color:var(--err);}
 
-  /* ---------- Renk testi (iOS uyumlu tam ekran katman) ---------- */
+  /* ---------- Renk testi overlay ---------- */
   #colorOverlay{
-    position:fixed;
-    inset:0;
-    width:100vw;
-    height:100vh;
-    height:100dvh;
-    display:none;
-    z-index:99999;
-    align-items:center;
-    justify-content:center;
+    position:fixed; inset:0;
+    width:100vw; height:100vh; height:100dvh;
+    display:none; z-index:99999;
+    align-items:center; justify-content:center;
     cursor:pointer;
     padding-top:env(safe-area-inset-top);
     padding-bottom:env(safe-area-inset-bottom);
@@ -92,36 +102,26 @@
     padding-right:env(safe-area-inset-right);
   }
   #colorOverlay span{
-    color:#fff;
-    mix-blend-mode:difference;
-    font-size:1rem;
+    color:#fff; mix-blend-mode:difference; font-size:1rem;
     padding:12px 18px;
     border:1px dashed rgba(255,255,255,.6);
     border-radius:10px;
     background:rgba(0,0,0,.15);
   }
 
-  /* ---------- Dokunmatik testi (tam ekran katman) ---------- */
+  /* ---------- Dokunmatik testi tam ekran ---------- */
   #touchOverlay{
-    position:fixed;
-    inset:0;
-    width:100vw;
-    height:100vh;
-    height:100dvh;
+    position:fixed; inset:0;
+    width:100vw; height:100vh; height:100dvh;
     background:var(--canvas-bg);
-    display:none;
-    z-index:99998;
-    touch-action:none;
-    overflow:hidden;
+    display:none; z-index:99998;
+    touch-action:none; overflow:hidden;
   }
   #touchOverlay.active{display:block;}
   #touchCanvas{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    display:block;
-    touch-action:none;
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    display:block; touch-action:none;
     background:var(--canvas-bg);
   }
   #touchOverlay .hud{
@@ -129,95 +129,76 @@
     top:calc(12px + env(safe-area-inset-top));
     left:calc(12px + env(safe-area-inset-left));
     right:calc(12px + env(safe-area-inset-right));
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    pointer-events:none;
-    z-index:2;
+    display:flex; justify-content:space-between; align-items:center;
+    pointer-events:none; z-index:2;
   }
   #touchOverlay .hud .pill{
     pointer-events:auto;
-    background:var(--hud-bg);
-    color:var(--text);
-    border-radius:10px;
-    padding:8px 12px;
-    font-size:.85rem;
-    border:1px solid var(--hud-border);
+    background:var(--hud-bg); color:var(--text);
+    border-radius:10px; padding:8px 12px;
+    font-size:.85rem; border:1px solid var(--hud-border);
     backdrop-filter:blur(6px);
   }
   #touchOverlay .hud .pill b{color:var(--accent);}
   #touchCloseBtn{
     pointer-events:auto;
-    background:#ef4444 !important;
-    color:#fff !important;
-    font-weight:700;
-    padding:10px 16px !important;
-    margin:0 !important;
-    border-radius:10px !important;
+    background:#ef4444 !important; color:#fff !important;
+    font-weight:700; padding:10px 16px !important;
+    margin:0 !important; border-radius:10px !important;
     font-size:.9rem !important;
   }
   #touchClearBtn{
     pointer-events:auto;
-    background:var(--alt-bg) !important;
-    color:var(--alt-text) !important;
-    padding:8px 14px !important;
-    margin:0 8px 0 0 !important;
-    border-radius:10px !important;
-    font-size:.85rem !important;
+    background:var(--alt-bg) !important; color:var(--alt-text) !important;
+    padding:8px 14px !important; margin:0 8px 0 0 !important;
+    border-radius:10px !important; font-size:.85rem !important;
   }
 
   /* ---------- Hoparlör ---------- */
   input[type=range]{width:100%;}
 
   /* ---------- Mikrofon ---------- */
-  #micBar{height:14px; background:var(--canvas-bg); border-radius:7px; overflow:hidden;
+  #micBar{height:14px; background:var(--canvas-bg);
+    border-radius:7px; overflow:hidden;
     border:1px solid var(--header-border);}
-  #micFill{height:100%; width:0%; background:linear-gradient(90deg,#22c55e,#ef4444);
+  #micFill{height:100%; width:0%;
+    background:linear-gradient(90deg,#22c55e,#ef4444);
     transition:width .05s;}
 
   /* ---------- Konum ---------- */
   #mapPreview{
-    width:100%;
-    height:220px;
+    width:100%; height:220px;
     background:var(--canvas-bg);
     border-radius:10px;
     border:1px solid var(--header-border);
-    margin-top:10px;
-    overflow:hidden;
+    margin-top:10px; overflow:hidden;
   }
   #mapPreview iframe{
-    width:100%; height:100%; border:0; display:block;
-    filter:invert(0);
+    width:100%; height:100%;
+    border:0; display:block;
+    filter:var(--map-filter);
   }
-  html[data-theme="light"] #mapPreview iframe{ filter:none; }
   #coordBox{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:6px;
-    margin-top:10px;
-    font-size:.85rem;
+    display:grid; grid-template-columns:1fr 1fr; gap:6px;
+    margin-top:10px; font-size:.85rem;
   }
   #coordBox .item{
     background:var(--canvas-bg);
     border:1px solid var(--header-border);
-    border-radius:8px;
-    padding:8px;
+    border-radius:8px; padding:8px;
   }
-  #coordBox .item .label{ color:var(--muted); font-size:.72rem; }
-  #coordBox .item .value{ color:var(--text); font-weight:600; word-break:break-all; }
+  #coordBox .item .label{color:var(--muted); font-size:.72rem;}
+  #coordBox .item .value{color:var(--text); font-weight:600; word-break:break-all;}
 
   /* ---------- iOS uyarı bandı ---------- */
   .ios-note{
     display:none;
-    background:var(--note-bg);
-    color:var(--note-text);
-    font-size:.78rem;
-    padding:8px 12px;
-    border-radius:8px;
-    margin-top:8px;
-    line-height:1.35;
+    background:var(--note-bg); color:var(--note-text);
+    font-size:.78rem; padding:8px 12px;
+    border-radius:8px; margin-top:8px; line-height:1.35;
   }
   .ios-note.show{display:block;}
+  .ios-note code{background:rgba(0,0,0,.15); padding:1px 4px; border-radius:4px;}
 </style>
 </head>
 <body>
@@ -249,7 +230,7 @@
     </div>
   </section>
 
-  <!-- 2. DOKUNMATİK TESTİ (butonlu) -->
+  <!-- 2. DOKUNMATİK TESTİ -->
   <section class="card" aria-label="Dokunmatik testi">
     <h2>2. Dokunmatik Testi</h2>
     <div class="row">
@@ -358,30 +339,37 @@
 /* ============================================================
    TEMA YÖNETİMİ
    ============================================================ */
-const themeToggle = document.getElementById('themeToggle');
-const metaTheme   = document.getElementById('metaTheme');
+(function(){
+  const themeToggle = document.getElementById('themeToggle');
+  const metaTheme   = document.getElementById('metaTheme');
 
-function applyTheme(theme){
-  document.documentElement.setAttribute('data-theme', theme);
-  themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
-  metaTheme.setAttribute('content', theme === 'light' ? '#f1f5f9' : '#0f172a');
-  localStorage.setItem('pwa-theme', theme);
-}
-
-(function initTheme(){
-  const saved = localStorage.getItem('pwa-theme');
-  if (saved === 'light' || saved === 'dark') {
-    applyTheme(saved);
-  } else {
-    const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-    applyTheme(prefersLight ? 'light' : 'dark');
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    themeToggle.textContent = (theme === 'light') ? '☀️' : '🌙';
+    metaTheme.setAttribute('content', (theme === 'light') ? '#f1f5f9' : '#0f172a');
+    try { localStorage.setItem('pwa-theme', theme); } catch(e){}
   }
-})();
 
-themeToggle.addEventListener('click', () => {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  applyTheme(current === 'dark' ? 'light' : 'dark');
-});
+  // Başlangıç teması
+  let initial = 'dark';
+  try {
+    const saved = localStorage.getItem('pwa-theme');
+    if (saved === 'light' || saved === 'dark') {
+      initial = saved;
+    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      initial = 'light';
+    }
+  } catch(e){}
+  applyTheme(initial);
+
+  // Tıklama — tema değiştir
+  themeToggle.addEventListener('click', function(ev){
+    ev.preventDefault();
+    ev.stopPropagation();
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+})();
 
 /* ============================================================
    iOS TESPİTİ
@@ -392,16 +380,20 @@ const isStandalone = window.navigator.standalone === true ||
                      window.matchMedia('(display-mode: standalone)').matches;
 
 if (isIOS && !isStandalone) {
-  document.getElementById('iosColorNote').classList.add('show');
-  document.getElementById('iosAudioNote').classList.add('show');
+  const c = document.getElementById('iosColorNote');
+  const a = document.getElementById('iosAudioNote');
+  if (c) c.classList.add('show');
+  if (a) a.classList.add('show');
 }
 if (isIOS) {
-  document.getElementById('iosVibNote').classList.add('show');
-  document.getElementById('iosLocNote').classList.add('show');
+  const v = document.getElementById('iosVibNote');
+  const l = document.getElementById('iosLocNote');
+  if (v) v.classList.add('show');
+  if (l) l.classList.add('show');
 }
 
 /* ============================================================
-   0. SERVICE WORKER KAYDI
+   0. SERVICE WORKER
    ============================================================ */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -412,7 +404,7 @@ if ('serviceWorker' in navigator) {
 }
 
 /* ============================================================
-   1. EKRAN RENK TESTİ (iOS uyumlu)
+   1. EKRAN RENK TESTİ
    ============================================================ */
 const overlay = document.getElementById('colorOverlay');
 
@@ -446,13 +438,18 @@ overlay.addEventListener('click', async () => {
 /* ============================================================
    2. DOKUNMATİK TESTİ — Tam ekran katman
    ============================================================ */
-const touchOverlay = document.getElementById('touchOverlay');
-const canvas       = document.getElementById('touchCanvas');
-const ctx          = canvas.getContext('2d');
-const touchCountEl = document.getElementById('touchCount');
+const touchOverlay  = document.getElementById('touchOverlay');
+const canvas        = document.getElementById('touchCanvas');
+const ctx           = canvas.getContext('2d');
+const touchCountEl  = document.getElementById('touchCount');
 const touchStartBtn = document.getElementById('touchStartBtn');
 const touchCloseBtn = document.getElementById('touchCloseBtn');
 const touchClearBtn = document.getElementById('touchClearBtn');
+
+function accentColor(){
+  return getComputedStyle(document.documentElement)
+         .getPropertyValue('--accent').trim() || '#38bdf8';
+}
 
 function resizeTouchCanvas(){
   const r = canvas.getBoundingClientRect();
@@ -462,16 +459,13 @@ function resizeTouchCanvas(){
   ctx.scale(devicePixelRatio, devicePixelRatio);
   ctx.lineWidth = 4;
   ctx.lineCap = 'round';
-  ctx.strokeStyle = getComputedStyle(document.documentElement)
-                     .getPropertyValue('--accent').trim() || '#38bdf8';
+  ctx.strokeStyle = accentColor();
 }
 window.addEventListener('resize', () => {
   if (touchOverlay.classList.contains('active')) resizeTouchCanvas();
 });
-// Tema değişince çizgi rengini güncelle
 new MutationObserver(() => {
-  ctx.strokeStyle = getComputedStyle(document.documentElement)
-                     .getPropertyValue('--accent').trim() || '#38bdf8';
+  ctx.strokeStyle = accentColor();
 }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 function openTouchTest(){
@@ -484,7 +478,6 @@ function openTouchTest(){
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   });
 }
-
 function closeTouchTest(){
   touchOverlay.classList.remove('active');
   document.body.style.overflow = '';
@@ -499,7 +492,6 @@ touchClearBtn.addEventListener('click', () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
-/* Dokunma izleme */
 const activeTouches = new Map();
 
 function localPos(t){
@@ -546,7 +538,6 @@ canvas.addEventListener('touchcancel', () => {
   touchCountEl.textContent = 0;
 });
 
-/* Fare ile test (masaüstü önizleme) */
 canvas.addEventListener('mousedown', e => {
   const r = canvas.getBoundingClientRect();
   const p = { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -640,8 +631,7 @@ document.getElementById('micStart').addEventListener('click', async () => {
     };
     loop();
   } catch (e) {
-    micStatus.textContent = 'Mikrofon hatası: ' + e.message +
-      ' (HTTPS gerekli)';
+    micStatus.textContent = 'Mikrofon hatası: ' + e.message + ' (HTTPS gerekli)';
     micStatus.className = 'status err';
   }
 });
@@ -703,7 +693,7 @@ document.getElementById('micPlay').addEventListener('click', () => {
 });
 
 /* ============================================================
-   5. TİTREŞİM TESTİ (iOS fallback'li)
+   5. TİTREŞİM TESTİ
    ============================================================ */
 const vibStatus = document.getElementById('vibStatus');
 
@@ -742,13 +732,11 @@ document.querySelectorAll('[data-vib]').forEach(btn => {
 
     if (supported) {
       const ok = navigator.vibrate(pattern);
-      vibStatus.textContent = ok ? 'Titreşim gönderildi.'
-                                 : 'Titreşim reddedildi.';
+      vibStatus.textContent = ok ? 'Titreşim gönderildi.' : 'Titreşim reddedildi.';
       vibStatus.className = 'status ' + (ok ? 'ok' : 'err');
     } else if (isIOS) {
       vibStatus.textContent =
-        '⚠️ iPhone titreşim API\'sini desteklemiyor. Görsel + sesli ' +
-        'geri bildirim uygulandı.';
+        '⚠️ iPhone titreşim API\'sini desteklemiyor. Görsel + sesli geri bildirim uygulandı.';
       vibStatus.className = 'status err';
       iosHapticFallback(totalMs);
     } else {
@@ -790,4 +778,91 @@ document.getElementById('pingBtn').addEventListener('click', async () => {
 /* ============================================================
    7. KONUM KONTROL TESTİ
    ============================================================ */
-const locBtn
+const locBtn      = document.getElementById('locBtn');
+const locWatchBtn = document.getElementById('locWatchBtn');
+const locStopBtn  = document.getElementById('locStopBtn');
+const locLat      = document.getElementById('locLat');
+const locLng      = document.getElementById('locLng');
+const locAcc      = document.getElementById('locAcc');
+const locTime     = document.getElementById('locTime');
+const locStatus   = document.getElementById('locStatus');
+const mapPreview  = document.getElementById('mapPreview');
+
+let locWatchId = null;
+
+function renderPosition(pos){
+  const c = pos.coords;
+  locLat.textContent = c.latitude.toFixed(6);
+  locLng.textContent = c.longitude.toFixed(6);
+  locAcc.textContent = '±' + Math.round(c.accuracy) + ' m';
+  locTime.textContent = new Date(pos.timestamp).toLocaleTimeString('tr-TR');
+  locStatus.textContent = 'Konum alındı.';
+  locStatus.className = 'status ok';
+
+  // OpenStreetMap iframe (API key gerektirmez)
+  const d = 0.005;
+  const bbox = [c.longitude - d, c.latitude - d, c.longitude + d, c.latitude + d].join('%2C');
+  const marker = c.latitude + '%2C' + c.longitude;
+  const src = 'https://www.openstreetmap.org/export/embed.html?bbox=' +
+              bbox + '&layer=mapnik&marker=' + marker;
+  mapPreview.innerHTML = '<iframe loading="lazy" src="' + src + '"></iframe>';
+}
+
+function locError(err){
+  const msgs = {
+    1: 'İzin reddedildi. Tarayıcı ayarlarından konum izni ver.',
+    2: 'Konum bilgisi alınamadı (sinyal yok).',
+    3: 'Zaman aşımı.'
+  };
+  locStatus.textContent = 'Hata: ' + (msgs[err.code] || err.message);
+  locStatus.className = 'status err';
+}
+
+locBtn.addEventListener('click', () => {
+  if (!('geolocation' in navigator)) {
+    locStatus.textContent = 'Bu tarayıcı konumu desteklemiyor.';
+    locStatus.className = 'status err';
+    return;
+  }
+  locStatus.textContent = 'Konum alınıyor…';
+  locStatus.className = 'status';
+  navigator.geolocation.getCurrentPosition(renderPosition, locError, {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  });
+});
+
+locWatchBtn.addEventListener('click', () => {
+  if (!('geolocation' in navigator)) {
+    locStatus.textContent = 'Bu tarayıcı konumu desteklemiyor.';
+    locStatus.className = 'status err';
+    return;
+  }
+  if (locWatchId !== null) {
+    locStatus.textContent = 'Canlı takip zaten aktif.';
+    return;
+  }
+  locStatus.textContent = 'Canlı takip başladı…';
+  locStatus.className = 'status';
+  locWatchId = navigator.geolocation.watchPosition(renderPosition, locError, {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  });
+});
+
+locStopBtn.addEventListener('click', () => {
+  if (locWatchId !== null) {
+    navigator.geolocation.clearWatch(locWatchId);
+    locWatchId = null;
+    locStatus.textContent = 'Canlı takip durduruldu.';
+    locStatus.className = 'status';
+  } else {
+    locStatus.textContent = 'Aktif takip yok.';
+    locStatus.className = 'status';
+  }
+});
+</script>
+</body>
+</html>
