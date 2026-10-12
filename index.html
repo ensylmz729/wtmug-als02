@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0f172a" />
+<meta name="theme-color" content="#0f172a" id="metaTheme" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Cihaz Test" />
@@ -15,30 +15,61 @@
   :root{
     --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0;
     --muted:#94a3b8; --ok:#22c55e; --err:#ef4444;
+    --header-border:#334155; --canvas-bg:#0b1220;
+    --hud-bg:rgba(30,41,59,.85); --hud-border:#334155;
+    --alt-bg:#475569; --alt-text:#e2e8f0;
+    --note-bg:#7c2d12; --note-text:#fed7aa;
+    --shadow:0 2px 8px rgba(0,0,0,.3);
   }
+  html[data-theme="light"]{
+    --bg:#f1f5f9; --card:#ffffff; --accent:#0284c7; --text:#0f172a;
+    --muted:#64748b; --ok:#16a34a; --err:#dc2626;
+    --header-border:#cbd5e1; --canvas-bg:#f8fafc;
+    --hud-bg:rgba(255,255,255,.9); --hud-border:#cbd5e1;
+    --alt-bg:#cbd5e1; --alt-text:#0f172a;
+    --note-bg:#fef3c7; --note-text:#92400e;
+    --shadow:0 2px 8px rgba(15,23,42,.1);
+  }
+
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 
   html,body{
     margin:0; padding:0; background:var(--bg); color:var(--text);
     font-family:-apple-system,Roboto,"Segoe UI",sans-serif;
     overscroll-behavior:none;
+    transition:background .25s ease, color .25s ease;
   }
 
-  header{padding:16px; text-align:center; border-bottom:1px solid #334155;
-    padding-top:calc(16px + env(safe-area-inset-top));}
+  header{padding:16px; text-align:center; border-bottom:1px solid var(--header-border);
+    padding-top:calc(16px + env(safe-area-inset-top));
+    position:relative;}
   header h1{margin:0; font-size:1.2rem;}
   header p{margin:4px 0 0; font-size:.8rem; color:var(--muted);}
+
+  /* Tema değiştirme butonu */
+  #themeToggle{
+    position:absolute;
+    top:calc(12px + env(safe-area-inset-top));
+    right:calc(12px + env(safe-area-inset-right));
+    width:42px; height:42px; padding:0; margin:0;
+    border-radius:50%;
+    background:var(--card); color:var(--text);
+    border:1px solid var(--header-border);
+    font-size:1.15rem;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:var(--shadow);
+  }
 
   main{padding:12px; display:grid; gap:12px;
     padding-bottom:calc(12px + env(safe-area-inset-bottom));}
 
   .card{background:var(--card); border-radius:14px; padding:14px;
-    box-shadow:0 2px 8px rgba(0,0,0,.3);}
+    box-shadow:var(--shadow); transition:background .25s ease;}
   .card h2{margin:0 0 10px; font-size:1rem; color:var(--accent);}
   button{padding:10px 14px; margin:4px; border:none; border-radius:8px;
-    background:var(--accent); color:#0f172a; font-weight:600; font-size:.9rem;}
+    background:var(--accent); color:#fff; font-weight:600; font-size:.9rem;}
   button:active{opacity:.7;}
-  button.alt{background:#475569; color:#e2e8f0;}
+  button.alt{background:var(--alt-bg); color:var(--alt-text);}
   .row{display:flex; flex-wrap:wrap; align-items:center; gap:6px;}
   .status{font-size:.85rem; color:var(--muted); margin-top:8px;}
   .ok{color:var(--ok);} .err{color:var(--err);}
@@ -49,7 +80,7 @@
     inset:0;
     width:100vw;
     height:100vh;
-    height:100dvh;              /* iOS 16+ dinamik viewport */
+    height:100dvh;
     display:none;
     z-index:99999;
     align-items:center;
@@ -77,7 +108,7 @@
     width:100vw;
     height:100vh;
     height:100dvh;
-    background:#0b1220;
+    background:var(--canvas-bg);
     display:none;
     z-index:99998;
     touch-action:none;
@@ -91,7 +122,7 @@
     height:100%;
     display:block;
     touch-action:none;
-    background:#0b1220;
+    background:var(--canvas-bg);
   }
   #touchOverlay .hud{
     position:absolute;
@@ -106,15 +137,15 @@
   }
   #touchOverlay .hud .pill{
     pointer-events:auto;
-    background:rgba(30,41,59,.85);
-    color:#e2e8f0;
+    background:var(--hud-bg);
+    color:var(--text);
     border-radius:10px;
     padding:8px 12px;
     font-size:.85rem;
-    border:1px solid #334155;
+    border:1px solid var(--hud-border);
     backdrop-filter:blur(6px);
   }
-  #touchOverlay .hud .pill b{color:#38bdf8;}
+  #touchOverlay .hud .pill b{color:var(--accent);}
   #touchCloseBtn{
     pointer-events:auto;
     background:#ef4444 !important;
@@ -127,8 +158,8 @@
   }
   #touchClearBtn{
     pointer-events:auto;
-    background:#475569 !important;
-    color:#e2e8f0 !important;
+    background:var(--alt-bg) !important;
+    color:var(--alt-text) !important;
     padding:8px 14px !important;
     margin:0 8px 0 0 !important;
     border-radius:10px !important;
@@ -139,15 +170,47 @@
   input[type=range]{width:100%;}
 
   /* ---------- Mikrofon ---------- */
-  #micBar{height:14px; background:#0b1220; border-radius:7px; overflow:hidden;}
+  #micBar{height:14px; background:var(--canvas-bg); border-radius:7px; overflow:hidden;
+    border:1px solid var(--header-border);}
   #micFill{height:100%; width:0%; background:linear-gradient(90deg,#22c55e,#ef4444);
     transition:width .05s;}
+
+  /* ---------- Konum ---------- */
+  #mapPreview{
+    width:100%;
+    height:220px;
+    background:var(--canvas-bg);
+    border-radius:10px;
+    border:1px solid var(--header-border);
+    margin-top:10px;
+    overflow:hidden;
+  }
+  #mapPreview iframe{
+    width:100%; height:100%; border:0; display:block;
+    filter:invert(0);
+  }
+  html[data-theme="light"] #mapPreview iframe{ filter:none; }
+  #coordBox{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:10px;
+    font-size:.85rem;
+  }
+  #coordBox .item{
+    background:var(--canvas-bg);
+    border:1px solid var(--header-border);
+    border-radius:8px;
+    padding:8px;
+  }
+  #coordBox .item .label{ color:var(--muted); font-size:.72rem; }
+  #coordBox .item .value{ color:var(--text); font-weight:600; word-break:break-all; }
 
   /* ---------- iOS uyarı bandı ---------- */
   .ios-note{
     display:none;
-    background:#7c2d12;
-    color:#fed7aa;
+    background:var(--note-bg);
+    color:var(--note-text);
     font-size:.78rem;
     padding:8px 12px;
     border-radius:8px;
@@ -162,6 +225,7 @@
 <header>
   <h1>Android Cihaz Test PWA</h1>
   <p>Pixel 7 • Android 14 • Chrome</p>
+  <button id="themeToggle" aria-label="Tema değiştir" title="Tema değiştir">🌙</button>
 </header>
 
 <main>
@@ -251,6 +315,28 @@
     <p class="status">Gecikme: <b id="pingResult">—</b> ms</p>
   </section>
 
+  <!-- 7. KONUM TESTİ -->
+  <section class="card" aria-label="Konum testi">
+    <h2>7. Konum Kontrol Testi</h2>
+    <div class="row">
+      <button id="locBtn">Konumu Al</button>
+      <button id="locWatchBtn" class="alt">Canlı Takip</button>
+      <button id="locStopBtn" class="alt">Durdur</button>
+    </div>
+    <div id="coordBox">
+      <div class="item"><div class="label">Enlem</div><div class="value" id="locLat">—</div></div>
+      <div class="item"><div class="label">Boylam</div><div class="value" id="locLng">—</div></div>
+      <div class="item"><div class="label">Doğruluk</div><div class="value" id="locAcc">—</div></div>
+      <div class="item"><div class="label">Zaman</div><div class="value" id="locTime">—</div></div>
+    </div>
+    <div id="mapPreview"></div>
+    <p class="status" id="locStatus">Konum bekleniyor…</p>
+    <div class="ios-note" id="iosLocNote">
+      ℹ️ iPhone'da konum için: <b>Ayarlar → Safari → Konum → İzin Ver</b>.
+      PWA modunda da izin istenir. HTTPS zorunludur.
+    </div>
+  </section>
+
 </main>
 
 <!-- Renk tam ekran katmanı -->
@@ -270,6 +356,34 @@
 
 <script>
 /* ============================================================
+   TEMA YÖNETİMİ
+   ============================================================ */
+const themeToggle = document.getElementById('themeToggle');
+const metaTheme   = document.getElementById('metaTheme');
+
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  themeToggle.textContent = theme === 'light' ? '☀️' : '🌙';
+  metaTheme.setAttribute('content', theme === 'light' ? '#f1f5f9' : '#0f172a');
+  localStorage.setItem('pwa-theme', theme);
+}
+
+(function initTheme(){
+  const saved = localStorage.getItem('pwa-theme');
+  if (saved === 'light' || saved === 'dark') {
+    applyTheme(saved);
+  } else {
+    const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    applyTheme(prefersLight ? 'light' : 'dark');
+  }
+})();
+
+themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+/* ============================================================
    iOS TESPİTİ
    ============================================================ */
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -283,6 +397,7 @@ if (isIOS && !isStandalone) {
 }
 if (isIOS) {
   document.getElementById('iosVibNote').classList.add('show');
+  document.getElementById('iosLocNote').classList.add('show');
 }
 
 /* ============================================================
@@ -347,18 +462,23 @@ function resizeTouchCanvas(){
   ctx.scale(devicePixelRatio, devicePixelRatio);
   ctx.lineWidth = 4;
   ctx.lineCap = 'round';
-  ctx.strokeStyle = '#38bdf8';
+  ctx.strokeStyle = getComputedStyle(document.documentElement)
+                     .getPropertyValue('--accent').trim() || '#38bdf8';
 }
 window.addEventListener('resize', () => {
   if (touchOverlay.classList.contains('active')) resizeTouchCanvas();
 });
+// Tema değişince çizgi rengini güncelle
+new MutationObserver(() => {
+  ctx.strokeStyle = getComputedStyle(document.documentElement)
+                     .getPropertyValue('--accent').trim() || '#38bdf8';
+}).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 function openTouchTest(){
   touchOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
   touchCountEl.textContent = '0';
   activeTouches.clear();
-  // Katman göründükten sonra canvas'ı ölçekle
   requestAnimationFrame(() => {
     resizeTouchCanvas();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -370,7 +490,6 @@ function closeTouchTest(){
   document.body.style.overflow = '';
   activeTouches.clear();
   touchCountEl.textContent = '0';
-  // Canvas'ı temizle (bir sonraki açılışta taze başlasın)
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -381,7 +500,7 @@ touchClearBtn.addEventListener('click', () => {
 });
 
 /* Dokunma izleme */
-const activeTouches = new Map(); // identifier -> {x,y}
+const activeTouches = new Map();
 
 function localPos(t){
   const r = canvas.getBoundingClientRect();
@@ -393,10 +512,9 @@ canvas.addEventListener('touchstart', e => {
   for (const t of e.changedTouches) {
     const p = localPos(t);
     activeTouches.set(t.identifier, p);
-    // Başlangıç noktası için küçük bir daire çiz
     ctx.beginPath();
     ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#38bdf8';
+    ctx.fillStyle = ctx.strokeStyle;
     ctx.fill();
   }
   touchCountEl.textContent = e.touches.length;
@@ -435,7 +553,7 @@ canvas.addEventListener('mousedown', e => {
   activeTouches.set('mouse', p);
   ctx.beginPath();
   ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-  ctx.fillStyle = '#38bdf8';
+  ctx.fillStyle = ctx.strokeStyle;
   ctx.fill();
 });
 canvas.addEventListener('mousemove', e => {
@@ -668,6 +786,8 @@ document.getElementById('pingBtn').addEventListener('click', async () => {
   }
   updateNet();
 });
-</script>
-</body>
-</html>
+
+/* ============================================================
+   7. KONUM KONTROL TESTİ
+   ============================================================ */
+const locBtn
