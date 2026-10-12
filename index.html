@@ -70,9 +70,70 @@
     background:rgba(0,0,0,.15);
   }
 
-  /* ---------- Dokunmatik ---------- */
-  #touchCanvas{width:100%; height:220px; background:#0b1220;
-    border-radius:10px; touch-action:none; display:block;}
+  /* ---------- Dokunmatik testi (tam ekran katman) ---------- */
+  #touchOverlay{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    height:100dvh;
+    background:#0b1220;
+    display:none;
+    z-index:99998;
+    touch-action:none;
+    overflow:hidden;
+  }
+  #touchOverlay.active{display:block;}
+  #touchCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    touch-action:none;
+    background:#0b1220;
+  }
+  #touchOverlay .hud{
+    position:absolute;
+    top:calc(12px + env(safe-area-inset-top));
+    left:calc(12px + env(safe-area-inset-left));
+    right:calc(12px + env(safe-area-inset-right));
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    pointer-events:none;
+    z-index:2;
+  }
+  #touchOverlay .hud .pill{
+    pointer-events:auto;
+    background:rgba(30,41,59,.85);
+    color:#e2e8f0;
+    border-radius:10px;
+    padding:8px 12px;
+    font-size:.85rem;
+    border:1px solid #334155;
+    backdrop-filter:blur(6px);
+  }
+  #touchOverlay .hud .pill b{color:#38bdf8;}
+  #touchCloseBtn{
+    pointer-events:auto;
+    background:#ef4444 !important;
+    color:#fff !important;
+    font-weight:700;
+    padding:10px 16px !important;
+    margin:0 !important;
+    border-radius:10px !important;
+    font-size:.9rem !important;
+  }
+  #touchClearBtn{
+    pointer-events:auto;
+    background:#475569 !important;
+    color:#e2e8f0 !important;
+    padding:8px 14px !important;
+    margin:0 8px 0 0 !important;
+    border-radius:10px !important;
+    font-size:.85rem !important;
+  }
 
   /* ---------- Hoparlör ---------- */
   input[type=range]{width:100%;}
@@ -124,14 +185,13 @@
     </div>
   </section>
 
-  <!-- 2. DOKUNMATİK TESTİ -->
+  <!-- 2. DOKUNMATİK TESTİ (butonlu) -->
   <section class="card" aria-label="Dokunmatik testi">
     <h2>2. Dokunmatik Testi</h2>
-    <canvas id="touchCanvas"></canvas>
     <div class="row">
-      <button id="clearCanvas" class="alt">Temizle</button>
-      <span class="status">Aktif parmak: <b id="touchCount">0</b></span>
+      <button id="touchStartBtn">Dokunmatik Testini Başlat</button>
     </div>
+    <p class="status">Butona bas → tam ekran test alanı açılır. Parmağını sürükle, çoklu dokunmayı dene.</p>
   </section>
 
   <!-- 3. HOPARLÖR TESTİ -->
@@ -196,6 +256,18 @@
 <!-- Renk tam ekran katmanı -->
 <div id="colorOverlay"><span>Geri dönmek için dokun</span></div>
 
+<!-- Dokunmatik tam ekran katmanı -->
+<div id="touchOverlay">
+  <canvas id="touchCanvas"></canvas>
+  <div class="hud">
+    <div class="pill">Aktif parmak: <b id="touchCount">0</b></div>
+    <div style="display:flex; align-items:center;">
+      <button id="touchClearBtn">Temizle</button>
+      <button id="touchCloseBtn">Kapat</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    iOS TESPİTİ
@@ -206,12 +278,10 @@ const isStandalone = window.navigator.standalone === true ||
                      window.matchMedia('(display-mode: standalone)').matches;
 
 if (isIOS && !isStandalone) {
-  // Safari sekmesindeyse bilgilendirmeleri göster
   document.getElementById('iosColorNote').classList.add('show');
   document.getElementById('iosAudioNote').classList.add('show');
 }
 if (isIOS) {
-  // Titreşim notu her durumda gösterilsin
   document.getElementById('iosVibNote').classList.add('show');
 }
 
@@ -237,18 +307,14 @@ document.querySelectorAll('[data-color]').forEach(btn => {
     overlay.style.background = c;
     overlay.style.display = 'flex';
 
-    // iOS'ta fullscreen API yok — sadece destekleyen tarayıcılarda çağır
     const el = document.documentElement;
     if (!document.fullscreenElement && el.requestFullscreen) {
-      try { await el.requestFullscreen(); } catch(e){ /* iOS'ta buraya düşer */ }
+      try { await el.requestFullscreen(); } catch(e){}
     } else if (!document.fullscreenElement && el.webkitRequestFullscreen) {
       try { el.webkitRequestFullscreen(); } catch(e){}
     }
 
-    // iOS'ta scroll'u en üste sabitle (Safari çubuğunun kaymasını engeller)
     window.scrollTo(0, 0);
-
-    // Renk katmanındayken body scroll'unu kilitle
     document.body.style.overflow = 'hidden';
   });
 });
@@ -263,26 +329,59 @@ overlay.addEventListener('click', async () => {
 });
 
 /* ============================================================
-   2. DOKUNMATİK TESTİ
+   2. DOKUNMATİK TESTİ — Tam ekran katman
    ============================================================ */
-const canvas = document.getElementById('touchCanvas');
-const ctx = canvas.getContext('2d');
+const touchOverlay = document.getElementById('touchOverlay');
+const canvas       = document.getElementById('touchCanvas');
+const ctx          = canvas.getContext('2d');
 const touchCountEl = document.getElementById('touchCount');
+const touchStartBtn = document.getElementById('touchStartBtn');
+const touchCloseBtn = document.getElementById('touchCloseBtn');
+const touchClearBtn = document.getElementById('touchClearBtn');
 
-function resizeCanvas(){
+function resizeTouchCanvas(){
   const r = canvas.getBoundingClientRect();
-  canvas.width  = r.width  * devicePixelRatio;
-  canvas.height = r.height * devicePixelRatio;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // reset (resize'larda ölçek birikmesin)
+  canvas.width  = Math.round(r.width  * devicePixelRatio);
+  canvas.height = Math.round(r.height * devicePixelRatio);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(devicePixelRatio, devicePixelRatio);
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 4;
   ctx.lineCap = 'round';
   ctx.strokeStyle = '#38bdf8';
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+window.addEventListener('resize', () => {
+  if (touchOverlay.classList.contains('active')) resizeTouchCanvas();
+});
 
-const activeTouches = new Map();
+function openTouchTest(){
+  touchOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  touchCountEl.textContent = '0';
+  activeTouches.clear();
+  // Katman göründükten sonra canvas'ı ölçekle
+  requestAnimationFrame(() => {
+    resizeTouchCanvas();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  });
+}
+
+function closeTouchTest(){
+  touchOverlay.classList.remove('active');
+  document.body.style.overflow = '';
+  activeTouches.clear();
+  touchCountEl.textContent = '0';
+  // Canvas'ı temizle (bir sonraki açılışta taze başlasın)
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+touchStartBtn.addEventListener('click', openTouchTest);
+touchCloseBtn.addEventListener('click', closeTouchTest);
+touchClearBtn.addEventListener('click', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+});
+
+/* Dokunma izleme */
+const activeTouches = new Map(); // identifier -> {x,y}
 
 function localPos(t){
   const r = canvas.getBoundingClientRect();
@@ -294,8 +393,11 @@ canvas.addEventListener('touchstart', e => {
   for (const t of e.changedTouches) {
     const p = localPos(t);
     activeTouches.set(t.identifier, p);
+    // Başlangıç noktası için küçük bir daire çiz
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fill();
   }
   touchCountEl.textContent = e.touches.length;
 }, { passive: false });
@@ -326,9 +428,29 @@ canvas.addEventListener('touchcancel', () => {
   touchCountEl.textContent = 0;
 });
 
-document.getElementById('clearCanvas').addEventListener('click', () => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+/* Fare ile test (masaüstü önizleme) */
+canvas.addEventListener('mousedown', e => {
+  const r = canvas.getBoundingClientRect();
+  const p = { x: e.clientX - r.left, y: e.clientY - r.top };
+  activeTouches.set('mouse', p);
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fill();
 });
+canvas.addEventListener('mousemove', e => {
+  if (!activeTouches.has('mouse')) return;
+  const r = canvas.getBoundingClientRect();
+  const p = { x: e.clientX - r.left, y: e.clientY - r.top };
+  const prev = activeTouches.get('mouse');
+  ctx.beginPath();
+  ctx.moveTo(prev.x, prev.y);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+  activeTouches.set('mouse', p);
+});
+canvas.addEventListener('mouseup', () => activeTouches.delete('mouse'));
+canvas.addEventListener('mouseleave', () => activeTouches.delete('mouse'));
 
 /* ============================================================
    3. HOPARLÖR TESTİ
@@ -346,7 +468,6 @@ function ensureAudioCtx(){
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  // iOS: ilk kullanıcı etkileşiminde resume şart
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
@@ -424,7 +545,6 @@ document.getElementById('micRecord').addEventListener('click', () => {
   }
   recordedChunks = [];
 
-  // iOS Safari bazen 'audio/webm' desteklemez; mp4 dene
   const mimeCandidates = ['audio/webm', 'audio/mp4', 'audio/aac', ''];
   let mime = '';
   for (const m of mimeCandidates) {
@@ -470,7 +590,6 @@ document.getElementById('micPlay').addEventListener('click', () => {
 const vibStatus = document.getElementById('vibStatus');
 
 function iosHapticFallback(durationMs){
-  // Görsel sarsıntı
   if (document.body.animate) {
     document.body.animate(
       [
@@ -482,7 +601,6 @@ function iosHapticFallback(durationMs){
       { duration: Math.min(300, durationMs || 150), easing: 'ease-in-out' }
     );
   }
-  // Kısa bir "tık" sesi (Web Audio ile)
   try {
     ensureAudioCtx();
     const o = audioCtx.createOscillator();
